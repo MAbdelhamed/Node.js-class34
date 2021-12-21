@@ -1,18 +1,37 @@
 import express from "express";
+import fetch from "node-fetch";
+import { API } from "./sources/keys.js";
 
-const weatherApp = express();
+const app = express();
 const port = process.env.port || 3000;
-weatherApp.use(express.json());
+app.use(express.json());
 
-weatherApp.get("/", (request, response) =>
+app.get("/", (request, response) =>
   response.send("hello from backend to frontend!")
 );
 
-weatherApp.post("/weather", (request, response) => {
-  const city = request.body.cityName;
-  response.json(city);
+app.post("/weather/:cityName", async (request, response) => {
+  const cityName = request.params.cityName;
+  console.log(cityName);
+  try {
+    if (cityName) {
+      const weather = await fetch(
+        `${API.url}q=${cityName}&units=metric&APPID=${API.key}`
+      );
+      const fetchData = await weather.json();
+      if (weather.status === 404) {
+        response.sendStatus(404);
+      } else {
+        response.send({
+          weatherText: `${cityName}  ${fetchData.main.temp.toFixed(2)}`,
+        });
+      }
+    } else {
+      response.send({ weatherText: "City is not found!" });
+    }
+  } catch (error) {
+    console.log(error);
+  }
 });
 
-weatherApp.listen(port, () =>
-  console.log(`server is running from port: ${port} `)
-);
+app.listen(port, () => console.log(`server is running from port: ${port} `));
